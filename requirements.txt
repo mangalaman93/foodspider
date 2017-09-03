@@ -1,1 +1,2 @@
 us==0.9.1
+GoogleScraper==0.2.1
