@@ -5,15 +5,14 @@ import __init__
 import csv
 import us
 import random
+import sys
 import time
 from GoogleScraper import scrape_with_config, GoogleSearchError
 
-NUM_PAGES=2
+NUM_PAGES = 2
 
-SEARCH_PREFIX = [
-    "national",
-    "domestic",
-] + list(map(lambda s: str(s), us.states.STATES))
+SEARCH_STATES = ["New Jersey", "New York"]
+# list(map(lambda s: str(s), us.states.STATES))
 
 SEARCH_TERMS = [
     "food bank",
@@ -22,61 +21,92 @@ SEARCH_TERMS = [
     "food assistance",
     "food outreach",
     "food advocacy",
-    "food organisations"
+    "food organisations",
+    "food insecurity"
 ]
 
 HEADER = [
-    "Name",
+    "State",
+    "Search Term",
+    "Page Number",
+    "Index of Search within the Page",
+    "Number of Times Domain Appeared within state",
+    "Title",
     "Description",
     "Link",
     "Google Link"
 ]
 
-seen = dict()
-def process(writer, dupwriter, result):
-    w = None
-    if seen.get(result.domain, False):
-        w = dupwriter
+def makeDecision():
+    cmd = input("enter 0 to skip, 1 to retry, 2 to exit > ")
+    if cmd != '0' and cmd != '1' and cmd != '2':
+        print("invalid input, try again!")
+        return makeDecision()
+    elif cmd == '0':
+        return True
+    elif cmd == '1':
+        return False
     else:
-        seen[result.domain] = True
-        w = writer
+        sys.exit(0)
+
+def process(state, term, page_number, seen, writer, result):
+    if seen.get(result.domain, -1) > 0:
+        seen[result.domain] = seen[result.domain] + 1
+    else:
+        seen[result.domain] = 1
 
     row = [
+        state,
+        term,
+        page_number,
+        result.rank,
+        seen[result.domain],
         result.title,
         result.snippet,
         result.link,
         result.visible_link
     ]
-    w.writerow(row)
+    writer.writerow(row)
 
-def serachFor(query):
-    config = {
-        'use_own_ip': True,
-        'keyword': query,
-        'search_engines': ['google'],
-        'num_pages_for_keyword': 2,
-        'scrape_method': 'selenium',
-        'sel_browser': 'chrome',
-        'do_caching': False
-    }
-    try:
-        search = scrape_with_config(config)
-        for serp in search.serps:
-            for result in serp.links:
-                process(writer, dupwriter, result)
-    except GoogleSearchError as e:
-        print(e)
+def serachForState(state):
+    seen = dict()
+    for term in SEARCH_TERMS:
+        query = ""
+        if state == "":
+            query = term
+        else:
+            query = state + " " + term
 
-with open("res/2/foodbanks.csv", "w", newline='') as csvfd:
+        config = {
+            'use_own_ip': True,
+            'keyword': query,
+            'search_engines': ['bing'],
+            'num_pages_for_keyword': NUM_PAGES,
+            'scrape_method': 'selenium',
+            'sel_browser': 'chrome',
+            'do_caching': False
+        }
+
+        done = False
+        while not done:
+            time.sleep(random.uniform(0, 1))
+            try:
+                search = scrape_with_config(config)
+                for serp in search.serps:
+                    for result in serp.links:
+                        process(state, term, serp.page_number, seen, writer, result)
+                done = True
+            except GoogleSearchError as e:
+                print(e)
+                done = makeDecision()
+
+with open("res/4/foodbanks.csv", "w", newline='') as csvfd:
     writer = csv.writer(csvfd, delimiter='\t')
     writer.writerow(HEADER)
-    with open("res/2/dupfoodbanks.csv", "w", newline='') as dupcsvfd:
-        dupwriter = csv.writer(dupcsvfd, delimiter='\t')
-        dupwriter.writerow(HEADER)
+    for state in SEARCH_STATES:
+        print("searching for state: "  + state)
+        serachForState(state)
 
-        for prefix in SEARCH_PREFIX:
-            for term in SEARCH_TERMS:
-                query = prefix + " " + term
-                print("searching for " + query)
-                serachFor(query)
-                time.sleep(random.uniform(0, 1))
+    SEARCH_TERMS.remove("food insecurity")
+    serachForState("national")
+    serachForState("")
