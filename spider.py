@@ -11,8 +11,7 @@ from GoogleScraper import scrape_with_config, GoogleSearchError
 
 NUM_PAGES = 2
 
-SEARCH_STATES = ["New Jersey", "New York"]
-# list(map(lambda s: str(s), us.states.STATES))
+SEARCH_STATES = list(map(lambda s: str(s), us.states.STATES))
 
 SEARCH_TERMS = [
     "food bank",
@@ -49,7 +48,7 @@ def makeDecision():
     else:
         sys.exit(0)
 
-def process(state, term, page_number, seen, writer, result):
+def process(state, term, page_number, seen, writer, result, last_last_count):
     if seen.get(result.domain, -1) > 0:
         seen[result.domain] = seen[result.domain] + 1
     else:
@@ -59,7 +58,7 @@ def process(state, term, page_number, seen, writer, result):
         state,
         term,
         page_number,
-        result.rank,
+        result.rank + last_last_count,
         seen[result.domain],
         result.title,
         result.snippet,
@@ -92,15 +91,19 @@ def serachForState(state):
             time.sleep(random.uniform(0, 1))
             try:
                 search = scrape_with_config(config)
+                last_count = 0
+                last_last_count = 0
                 for serp in search.serps:
+                    last_last_count = last_count
                     for result in serp.links:
-                        process(state, term, serp.page_number, seen, writer, result)
+                        last_count = last_count + 1
+                        process(state, term, serp.page_number, seen, writer, result, last_last_count)
                 done = True
             except GoogleSearchError as e:
                 print(e)
                 done = makeDecision()
 
-with open("res/4/foodbanks.csv", "w", newline='') as csvfd:
+with open("res/5/foodbanks.csv", "w", newline='') as csvfd:
     writer = csv.writer(csvfd, delimiter='\t')
     writer.writerow(HEADER)
     for state in SEARCH_STATES:
