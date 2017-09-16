@@ -3,6 +3,7 @@
 
 import __init__
 import csv
+import os
 import us
 import random
 import sys
@@ -48,7 +49,7 @@ def makeDecision():
     else:
         sys.exit(0)
 
-def process(state, term, page_number, seen, writer, result, last_last_count):
+def process(state, term, page_number, seen, result, last_last_count):
     if seen.get(result.domain, -1) > 0:
         seen[result.domain] = seen[result.domain] + 1
     else:
@@ -66,6 +67,7 @@ def process(state, term, page_number, seen, writer, result, last_last_count):
         result.visible_link
     ]
     writer.writerow(row)
+    writerall.writerow(row)
 
 def serachForState(state):
     seen = dict()
@@ -99,19 +101,27 @@ def serachForState(state):
                         if result.link_type != 'results':
                             continue
                         last_count = last_count + 1
-                        process(state, term, serp.page_number, seen, writer, result, last_last_count)
+                        process(state, term, serp.page_number, seen, result, last_last_count)
                 done = True
             except GoogleSearchError as e:
                 print(e)
                 done = makeDecision()
 
-with open("res/5/foodbanks.csv", "w", newline='') as csvfd:
-    writer = csv.writer(csvfd, delimiter='\t')
-    writer.writerow(HEADER)
-    for state in SEARCH_STATES:
-        print("searching for state: "  + state)
-        serachForState(state)
+directory = "res/" + str(int(time.time()))
+if not os.path.exists(directory):
+    os.makedirs(directory)
 
-with open("res/5/foodbanks_national.csv", "w", newline='') as csvfd:
-    SEARCH_TERMS.remove("food insecurity")
-    serachForState("national")
+with open(directory + "/all.csv", "w", newline='') as csvfdall:
+    writerall = csv.writer(csvfdall, delimiter='\t')
+    writerall.writerow(HEADER)
+    for state in SEARCH_STATES:
+        with open(directory + "/" + state + ".csv", "w", newline='') as csvfd:
+            writer = csv.writer(csvfd, delimiter='\t')
+            writer.writerow(HEADER)
+            serachForState(state)
+
+    with open(directory + "/national.csv", "w", newline='') as csvfd:
+        SEARCH_TERMS.remove("food insecurity")
+        writer = csv.writer(csvfd, delimiter='\t')
+        writer.writerow(HEADER)
+        serachForState("national")
