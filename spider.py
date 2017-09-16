@@ -9,7 +9,7 @@ import sys
 import time
 from GoogleScraper import scrape_with_config, GoogleSearchError
 
-NUM_PAGES = 2
+NUM_PAGES = 3
 
 SEARCH_STATES = list(map(lambda s: str(s), us.states.STATES))
 
@@ -110,6 +110,6 @@ with open("res/5/foodbanks.csv", "w", newline='') as csvfd:
         print("searching for state: "  + state)
         serachForState(state)
 
+with open("res/5/foodbanks_national.csv", "w", newline='') as csvfd:
     SEARCH_TERMS.remove("food insecurity")
     serachForState("national")
-    serachForState("")
