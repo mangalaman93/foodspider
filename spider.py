@@ -96,6 +96,8 @@ def serachForState(state):
                 for serp in search.serps:
                     last_last_count = last_count
                     for result in serp.links:
+                        if result.link_type != 'results':
+                            continue
                         last_count = last_count + 1
                         process(state, term, serp.page_number, seen, writer, result, last_last_count)
                 done = True
