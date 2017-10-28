@@ -15,6 +15,7 @@ NUM_PAGES = 3
 SEARCH_STATES = list(map(lambda s: str(s), us.states.STATES))
 
 SEARCH_TERMS = [
+    "food pantry",
     "food bank",
     "food charity",
     "food donation",
